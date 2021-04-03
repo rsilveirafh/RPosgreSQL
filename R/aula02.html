@@ -285,7 +285,7 @@ l</code></pre>
 <li>Funções <strong>sem</strong> argumento</li>
 </ul>
 <pre class="r"><code>Sys.time()</code></pre>
-<pre><code>## [1] &quot;2021-04-03 12:34:01 -03&quot;</code></pre>
+<pre><code>## [1] &quot;2021-04-03 13:34:15 -03&quot;</code></pre>
 <ul>
 <li>Funções com <strong>um</strong> argumento</li>
 </ul>
@@ -379,7 +379,9 @@ somar(4, 6)</code></pre>
 <ul>
 <li>Baixando dados</li>
 </ul>
-<pre class="r"><code>stf_download_information(incidente = &quot;2635061&quot;, 
+<pre class="r"><code># Downloads já feitos, caso não tenha feito ainda, colocar eval=FALSE
+
+stf_download_information(incidente = &quot;2635061&quot;, 
                          dir = here::here(&quot;data&quot;, &quot;raw&quot;, &quot;informacoes&quot;))
 stf_download_parties(incidente = &quot;2635061&quot;,
                      dir = here::here(&quot;data&quot;, &quot;raw&quot;, &quot;partes&quot;))
@@ -456,6 +458,110 @@ rtf</code></pre>
 ## 1 2635061   &quot;DECISÃO AGRAVO DE INSTRUMENTO. PROCESSUAL CIVIL. RECURSO ES… 25276…
 ## 2 2635061   &quot;Ocorreu um erro na recuperao do documento!&quot;                  29328…
 ## 3 2635061   &quot;Decisão: A Turma negou provimento ao agravo regimental no a… 29357…</code></pre>
+<hr />
+</div>
+<div id="tidyverse" class="section level3">
+<h3>4) tidyverse</h3>
+<ul>
+<li>Carregando <strong>tidyverse</strong></li>
+</ul>
+<pre class="r"><code>library(readxl)
+library(tidyverse)</code></pre>
+<pre><code>## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.0 ──</code></pre>
+<pre><code>## ✓ ggplot2 3.3.3     ✓ purrr   0.3.4
+## ✓ tibble  3.1.0     ✓ dplyr   1.0.5
+## ✓ tidyr   1.1.3     ✓ stringr 1.4.0
+## ✓ readr   1.4.0     ✓ forcats 0.5.1</code></pre>
+<pre><code>## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()</code></pre>
+<pre class="r"><code>library(writexl)</code></pre>
+<ul>
+<li>Salvando objetos em arquivos</li>
+</ul>
+<pre class="r"><code># Salvando em *.csv
+readr::write_csv(detalhes, here::here(&quot;data&quot;, &quot;raw&quot;, &quot;detalhes.csv&quot;))
+# Salvando em *.txt
+readr::write_delim(detalhes, here::here(&quot;data&quot;, &quot;raw&quot;, &quot;detalhes.txt&quot;), delim = &quot;\t&quot;)
+# Salvando em *.xlsx
+writexl::write_xlsx(detalhes, here::here(&quot;data&quot;, &quot;raw&quot;, &quot;detalhes.xlsx&quot;))
+# Salvando em json
+jsonlite::write_json(detalhes, here::here(&quot;data&quot;, &quot;raw&quot;, &quot;detalhes.json&quot;))
+# Salvando em RDS
+saveRDS(detalhes, here::here(&quot;data&quot;, &quot;raw&quot;, &quot;detalhes.rds&quot;))
+# Salvando em RData
+save(detalhes, informacoes, file = here::here(&quot;data&quot;, &quot;raw&quot;, &quot;bases.RData&quot;))</code></pre>
+<ul>
+<li>Lendo arquivos e transformando em um objeto</li>
+</ul>
+<pre class="r"><code># Lendo *.csv
+readr::read_csv(here::here(&quot;data&quot;, &quot;raw&quot;, &quot;detalhes.csv&quot;))</code></pre>
+<pre><code>## 
+## ── Column specification ────────────────────────────────────────────────────────
+## cols(
+##   incidente = col_double(),
+##   meio = col_character(),
+##   sigilo = col_character(),
+##   numero_unico = col_logical(),
+##   classe = col_character(),
+##   numero = col_double(),
+##   relator_atual = col_character()
+## )</code></pre>
+<pre><code>## # A tibble: 1 x 7
+##   incidente meio            sigilo  numero_unico classe numero relator_atual    
+##       &lt;dbl&gt; &lt;chr&gt;           &lt;chr&gt;   &lt;lgl&gt;        &lt;chr&gt;   &lt;dbl&gt; &lt;chr&gt;            
+## 1   2635061 Processo Físico Público NA           AI     725002 MIN. CÁRMEN LÚCIA</code></pre>
+<pre class="r"><code># Lendo *.txt
+readr::read_delim(here::here(&quot;data&quot;, &quot;raw&quot;, &quot;detalhes.txt&quot;), delim = &quot;\t&quot;)</code></pre>
+<pre><code>## 
+## ── Column specification ────────────────────────────────────────────────────────
+## cols(
+##   incidente = col_double(),
+##   meio = col_character(),
+##   sigilo = col_character(),
+##   numero_unico = col_logical(),
+##   classe = col_character(),
+##   numero = col_double(),
+##   relator_atual = col_character()
+## )</code></pre>
+<pre><code>## # A tibble: 1 x 7
+##   incidente meio            sigilo  numero_unico classe numero relator_atual    
+##       &lt;dbl&gt; &lt;chr&gt;           &lt;chr&gt;   &lt;lgl&gt;        &lt;chr&gt;   &lt;dbl&gt; &lt;chr&gt;            
+## 1   2635061 Processo Físico Público NA           AI     725002 MIN. CÁRMEN LÚCIA</code></pre>
+<pre class="r"><code># Lendo *.xlsx
+readxl::read_excel(here::here(&quot;data&quot;, &quot;raw&quot;, &quot;detalhes.xlsx&quot;))</code></pre>
+<pre><code>## # A tibble: 1 x 7
+##   incidente meio            sigilo  numero_unico classe numero relator_atual    
+##   &lt;chr&gt;     &lt;chr&gt;           &lt;chr&gt;   &lt;lgl&gt;        &lt;chr&gt;  &lt;chr&gt;  &lt;chr&gt;            
+## 1 2635061   Processo Físico Público NA           AI     725002 MIN. CÁRMEN LÚCIA</code></pre>
+<pre class="r"><code># Lendo *.json
+jsonlite::read_json(here::here(&quot;data&quot;, &quot;raw&quot;, &quot;detalhes.json&quot;))</code></pre>
+<pre><code>## [[1]]
+## [[1]]$incidente
+## [1] &quot;2635061&quot;
+## 
+## [[1]]$meio
+## [1] &quot;Processo Físico&quot;
+## 
+## [[1]]$sigilo
+## [1] &quot;Público&quot;
+## 
+## [[1]]$classe
+## [1] &quot;AI&quot;
+## 
+## [[1]]$numero
+## [1] &quot;725002&quot;
+## 
+## [[1]]$relator_atual
+## [1] &quot;MIN. CÁRMEN LÚCIA&quot;</code></pre>
+<pre class="r"><code># Lendo *.rds
+readRDS(here::here(&quot;data&quot;, &quot;raw&quot;, &quot;detalhes.rds&quot;))</code></pre>
+<pre><code>## # A tibble: 1 x 7
+##   incidente meio            sigilo  numero_unico classe numero relator_atual    
+##   &lt;chr&gt;     &lt;chr&gt;           &lt;chr&gt;   &lt;chr&gt;        &lt;chr&gt;  &lt;chr&gt;  &lt;chr&gt;            
+## 1 2635061   Processo Físico Público &lt;NA&gt;         AI     725002 MIN. CÁRMEN LÚCIA</code></pre>
+<pre class="r"><code># Lendo *.RData
+load(here::here(&quot;data&quot;, &quot;raw&quot;, &quot;bases.RData&quot;))</code></pre>
 </div>
 
 

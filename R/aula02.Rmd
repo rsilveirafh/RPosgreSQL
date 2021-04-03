@@ -172,7 +172,7 @@ rtf
 ```{r}
 library(readxl)
 library(tidyverse)
-library(writexlsx)
+library(writexl)
 ```
 
 - Salvando objetos em arquivos
