@@ -1,0 +1,112 @@
+---
+title: "aula01 :: PostgreSQL + R"
+author: "Ricardo da Silveira Filho"
+date: "27 mar 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+***
+### 0) Setup
+
+- Carregando os pacotes a serem utilizados na sessão
+```{r}
+library(RPostgres)
+library(tidyverse)
+```
+
+
+***
+### 1) Anotações
+
+- Como instalar R e RStudio
+	- Encontrar diretório dos pacotes: `.libPaths()`
+```{r}
+.libPaths()
+```
+
+
+- Instalar R + PostgreSQL
+	- <https://direito.consudata.com.br/rpsql/plr/>
+
+- Aluguel de máquina virtual
+	- <https://contabo.com/en/> (7 U$ mês)
+
+- R e RStudio na nuvem
+	- <https://direito.consudata.com.br/r/rnuvem/>
+
+
+***
+### 2) Acessando PostgreSQL
+
+- Acessar posgresql (bash)
+```{bash, eval=FALSE}
+sudo -u postgres psql
+```
+
+- Criar usuário (bash)
+```{bash, eval=FALSE}
+create user NOME with login password 'XXX';
+create user ricardo with login password '123456';
+```
+
+- Criar um banco de dados
+```{bash, eval=FALSE}
+create database teste01 owner ricardo;
+```
+
+- Garantir acesso à um usuário
+```{bash, eval=FALSE}
+grant all on database teste01 to ricardo;
+```
+
+- Instalar pacote RPostgres e DBI
+	- Necessário instalar biblioteca `libpq` no `bash`
+```{bash, eval=FALSE}
+sudo apt install -y libpq-dev
+```
+
+- Instalando pacotes no R
+```{r, eval=FALSE}
+install.packages("DBI")
+install.packages("RPostgres")
+```
+
+
+- **Abrindo** uma conexão com a máquina local (localhost)
+	- Em uma máquina virtual, mudar host (direito.consudata.com.br, p.ex.)
+	- Colocar conexão segura, colocar senha no Sys.env
+	- Abrindo conexão:
+```{r, eval=FALSE}
+conn <- DBI::dbConnect(RPostgres::Postgres(), 
+					   host = "localhost",
+					   user = "postgres",
+					   dbname = "postgres",
+					   password = "senha")
+```
+
+- Dados na máquina para teste
+```{r, eval=FALSE}
+conn <- DBI::dbConnect(RPostgres::Postgres(), 
+					   host = "localhost",
+					   user = "ricardo",
+					   dbname = "teste01",
+					   password = "123456")
+conn
+```
+
+
+- **"Tunar"** o PostgreSQL
+	- <https://pgtune.leopard.in.ua/#/>
+	- Ajeitar as configurações, clicar em ALTER SYSTEM, copiar e colar no terminal com o postgres.
+
+
+- **Encerrar** a conexão
+```{r, eval=FALSE}
+DBI::dbDisconnect(conn)
+```
+
+

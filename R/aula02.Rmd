@@ -1,0 +1,225 @@
+---
+title: "aula02 :: PostgreSQL + R"
+author: "Ricardo da Silveira Filho"
+date: "03 abr 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+***
+### 1) Básico de R:
+- Objetos;
+- `typeof()`, `class()`;
+	- `integer`
+	- `double`
+	- `factor`
+	- `character`
+- `data.frame()`;
+```{r}
+df <- data.frame(indiv = c("pedro", "maria", "joana"),
+				 sexo = c("M", "F", "F"),
+				 idade = c(35, 50, 15),
+				 religiao = c("cristão", "islâmica", "umbandista"))
+knitr::kable(df)
+```
+
+- Conversão de atributos;
+	- `as.*` (`as.integer()`, `as.factor()`, etc)
+- Função do `$`;
+```{r}
+df$idade <- as.integer(df$idade)
+typeof(df$idade)
+```
+	
+- `matrix()`;
+```{r}
+m <- matrix(1:10, nrow = 5, byrow = TRUE)
+knitr::kable(m)
+```
+- `list()`.
+```{r}
+l <- list(meudf = df, minhamatriz = m)
+l
+```
+
+
+***
+### 2) Funções no R
+
+- Funções **sem** argumento
+```{r}
+Sys.time()
+```
+
+- Funções com **um** argumento
+```{r}
+sqrt(25)
+```
+
+- Funções com **mais de um** argumento
+```{r}
+sum(4, 5)
+sum(1:10)
+```
+
+- Funções **agregadoras**
+```{r}
+set.seed(730)
+x <- sample(1:100, 8)
+x
+
+mean(x)
+median(x)
+sum(x)
+sd(x)
+```
+
+- **Operadores**
+```{r}
+2 * x
+x / 2
+x + 5
+x - 3
+```
+
+- **Ajuda**
+	- `?function`
+	
+- **Criando funções**
+```{r}
+somar <- function(x, y) {
+	x + y
+}
+
+somar(4, 6)
+```
+
+- Usando **pacotes de funções**
+	- A partir do CRAN:
+		- `install.packages("package")`
+	- A partir de um repositório público:
+		- `remotes::install.github("group/package")``
+	- Vários pacotes (+ se o computador tem vários "cores")
+		- `install.packages(c("tidyverse","remotes","RPostgres","dbx"), Ncpus = 8)`
+	- Carregando pacotes:
+		- `library("package")`
+
+- Criando **projetos**
+	- Utilizando o pacote `usethis`
+	- `usethis::create_project("path")`
+	
+- Usando **git** e **github**
+	- `usethis::use_git()`
+	- `usethis::use_github()`
+
+
+***
+### 3) Trabalhando no R
+
+- Carregando pacotes
+```{r}
+library(stf)
+```
+
+- Baixando dados
+```{r, eval=FALSE}
+# Downloads já feitos, caso não tenha feito ainda, colocar eval=FALSE
+
+stf_download_information(incidente = "2635061", 
+						 dir = here::here("data", "raw", "informacoes"))
+stf_download_parties(incidente = "2635061",
+					 dir = here::here("data", "raw", "partes"))
+stf_download_details(incidente = "2635061",
+					 dir = here::here("data", "raw", "detalhes"))
+stf_download_sheet(incidente = "2635061",
+				   dir = here::here("data", "raw", "movimentacao"))
+```
+
+- Colocando em objetos
+```{r}
+informacoes <- read_stf_information(path = here::here("data", "raw", "informacoes"))
+informacoes
+partes <- read_stf_parties(path = here::here("data", "raw", "partes"))
+partes
+detalhes <- read_stf_details(path = here::here("data", "raw", "detalhes"))
+detalhes
+movimentacao <- read_stf_docket_sheet(path = here::here("data", "raw", "movimentacao"))
+movimentacao
+```
+
+- Baixando rtf's
+```{r}
+download_stf_rtf(sheet = movimentacao, 
+				 path = here::here("data", "raw", "rtfs"))
+```
+
+- Lendo rtf's
+```{r}
+arquivos <- list.files(here::here("data", "raw", "rtfs"), full.names = TRUE)
+arquivos
+rtf <- read_stf_rtf(arquivos)
+rtf
+```
+
+
+***
+### 4) tidyverse
+
+- Carregando **tidyverse**
+```{r}
+library(readxl)
+library(tidyverse)
+library(writexlsx)
+```
+
+- Salvando objetos em arquivos
+```{r}
+# Salvando em *.csv
+readr::write_csv(detalhes, here::here("data", "raw", "detalhes.csv"))
+# Salvando em *.txt
+readr::write_delim(detalhes, here::here("data", "raw", "detalhes.txt"), delim = "\t")
+# Salvando em *.xlsx
+writexl::write_xlsx(detalhes, here::here("data", "raw", "detalhes.xlsx"))
+# Salvando em json
+jsonlite::write_json(detalhes, here::here("data", "raw", "detalhes.json"))
+# Salvando em RDS
+saveRDS(detalhes, here::here("data", "raw", "detalhes.rds"))
+# Salvando em RData
+save(detalhes, informacoes, file = here::here("data", "raw", "bases.RData"))
+```
+
+- Lendo arquivos e transformando em um objeto
+```{r}
+# Lendo *.csv
+readr::read_csv(here::here("data", "raw", "detalhes.csv"))
+# Lendo *.txt
+readr::read_delim(here::here("data", "raw", "detalhes.txt"), delim = "\t")
+# Lendo *.xlsx
+readxl::read_excel(here::here("data", "raw", "detalhes.xlsx"))
+# Lendo *.json
+jsonlite::read_json(here::here("data", "raw", "detalhes.json"))
+# Lendo *.rds
+readRDS(here::here("data", "raw", "detalhes.rds"))
+# Lendo *.RData
+load(here::here("data", "raw", "bases.RData"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
