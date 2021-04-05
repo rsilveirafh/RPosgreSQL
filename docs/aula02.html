@@ -234,31 +234,13 @@ typeof(df$idade)</code></pre>
 <li><code>matrix()</code>;</li>
 </ul>
 <pre class="r"><code>m &lt;- matrix(1:10, nrow = 5, byrow = TRUE)
-knitr::kable(m)</code></pre>
-<table>
-<tbody>
-<tr class="odd">
-<td align="right">1</td>
-<td align="right">2</td>
-</tr>
-<tr class="even">
-<td align="right">3</td>
-<td align="right">4</td>
-</tr>
-<tr class="odd">
-<td align="right">5</td>
-<td align="right">6</td>
-</tr>
-<tr class="even">
-<td align="right">7</td>
-<td align="right">8</td>
-</tr>
-<tr class="odd">
-<td align="right">9</td>
-<td align="right">10</td>
-</tr>
-</tbody>
-</table>
+m</code></pre>
+<pre><code>##      [,1] [,2]
+## [1,]    1    2
+## [2,]    3    4
+## [3,]    5    6
+## [4,]    7    8
+## [5,]    9   10</code></pre>
 <ul>
 <li><code>list()</code>.</li>
 </ul>
@@ -285,7 +267,7 @@ l</code></pre>
 <li>Funções <strong>sem</strong> argumento</li>
 </ul>
 <pre class="r"><code>Sys.time()</code></pre>
-<pre><code>## [1] &quot;2021-04-03 13:34:15 -03&quot;</code></pre>
+<pre><code>## [1] &quot;2021-04-05 12:16:22 -03&quot;</code></pre>
 <ul>
 <li>Funções com <strong>um</strong> argumento</li>
 </ul>
@@ -379,7 +361,7 @@ somar(4, 6)</code></pre>
 <ul>
 <li>Baixando dados</li>
 </ul>
-<pre class="r"><code># Downloads já feitos, caso não tenha feito ainda, colocar eval=FALSE
+<pre class="r"><code># Downloads já feitos, caso não tenha feito ainda, colocar eval=TRUE no chunk
 
 stf_download_information(incidente = &quot;2635061&quot;, 
                          dir = here::here(&quot;data&quot;, &quot;raw&quot;, &quot;informacoes&quot;))
