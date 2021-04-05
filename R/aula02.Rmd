@@ -126,7 +126,7 @@ library(stf)
 
 - Baixando dados
 ```{r, eval=FALSE}
-# Downloads já feitos, caso não tenha feito ainda, colocar eval=FALSE
+# Downloads já feitos, caso não tenha feito ainda, colocar eval=TRUE no chunk
 
 stf_download_information(incidente = "2635061", 
 						 dir = here::here("data", "raw", "informacoes"))
