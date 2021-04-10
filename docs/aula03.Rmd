@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 
 - Carregando os pacotes a serem utilizados na sessão
 ```{r, message=FALSE}
+library(DBI)
 library(lubridate)
 library(RPostgres)
 library(stf)
@@ -21,7 +22,7 @@ library(tidyverse)
 ```
 
 ***
-### 1) Tidyverse (continuação)
+### 1) `tidyverse` (continuação)
 
 - Construindo Dataframes
 ```{r}
@@ -69,7 +70,7 @@ stf_download_sheet(incid, here::here("data", "exdplyr", "movimentacao"))
 ```
 
 - Colocando em objetos
-```{r}
+```{r, eval=FALSE}
 informacoes <- read_stf_information(path = here::here("data", "exdplyr", "informacoes"))
 informacoes
 partes <- read_stf_parties(path = here::here("data", "exdplyr", "partes"))
@@ -80,12 +81,33 @@ movimentacao <- read_stf_docket_sheet(path = here::here("data", "exdplyr", "movi
 movimentacao
 ```
 
+- Salvando Base de Dados STF
+```{r, eval=FALSE}
+save(detalhes, informacoes, movimentacao, partes, file = here::here("data", "exdplyr", "base_stf.rda"))
+```
+
+- Carregando Base de Dados STF
+```{r}
+load(file = here::here("data", "exdplyr", "base_stf.rda"))
+```
+
 
 - `count()`
 	- Contabilizando observações
 ```{r}
+# Utilizando uma variável
 detalhes %>% 
 	count(relator_atual, sort = TRUE)
+
+# Mais de uma variável
+detalhes %>% 
+	count(relator_atual, classe, sort = TRUE)
+
+# Equivalente a:
+detalhes %>% 
+	group_by(relator_atual, classe) %>% 
+	summarise(n = n(),
+			  .groups = "drop")
 ```
 
 
@@ -235,17 +257,184 @@ data(starwars)
 starwars %>% 
 	group_by(sex) %>% 
 	summarise(peso_sexo = mean(mass, na.rm = TRUE),
-			  altura_sexo = mean(height, na.rm = TRUE))
+			  altura_sexo = mean(height, na.rm = TRUE),
+			  .groups = "drop")
 
 # Agrupando mais de uma variável
 starwars %>% 
 	group_by(species, gender) %>% 
-	summarise(peso_sp_gn = mean(mass, na.rm = TRUE))
+	summarise(peso_sp_gn = mean(mass, na.rm = TRUE),
+			  .groups = "drop")
 ```
 
 
 ***
-## 3) PosgreSQL + R
+## 3) Postgres + R
+
+- Fonte:
+	- <https://direito.consudata.com.br/rpsql/tb1/>
+
+
+### bash (Terminal)
+
+- Entrando no Postgres (bash)
+```{bash, eval=FALSE}
+sudo -u postgres psql
+```
+
+- Listar todos os usuários
+```{bash, eval=FALSE}
+\du
+```
+
+- Listar os esquemas
+```{bash, eval=FALSE}
+\dn
+```
+
+- Sair
+```{bash, eval=FALSE}
+\q
+```
+
+- Entrar
+```{bash, eval=FALSE}
+psql
+```
+
+- Mostrar bancos de dados disponíveis
+```{bash, eval=FALSE}
+\l
+```
+
+- Descrever todas as tabelas
+```{bash, eval=FALSE}
+\d
+```
+
+- Descrever todas as tabelas com mais informações
+```{bash, eval=FALSE}
+\d+
+```
+
+- Criar tabela
+```{bash, eval=FALSE}
+CREATE TABLE table1 (col1 text, col2 int);
+```
+
+- Descrever uma tabela específica
+```{bash, eval=FALSE}
+\d table1
+```
+
+- Criar tabela temporária
+	- Só existe enquanto a conexão estiver aberta
+```{bash, eval=FALSE}
+CREATE TEMP TABLE t1 (col1 text, col2 int);
+```
+
+- Inserindo comentários em uma tabela
+```{bash, eval=FALSE}
+COMMENT ON TABLE table1 IS 'minha tabela';
+```
+
+- Inserindo valores em uma tabela
+```{bash, eval=FALSE}
+INSERT INTO table1 VALUES ('primeira linha', 1);
+```
+
+- Inserindo valores em uma tabela explicitando as variáveis
+```{bash, eval=FALSE}
+INSERT INTO table1 (col1, col2) VALUES ('segunda linha', 2);
+```
+
+- Imprimindo 1
+```{bash, eval=FALSE}
+TABLE table1;
+```
+
+- Imprimindo 2
+```{bash, eval=FALSE}
+SELECT * FROM table1;
+```
+
+- Apagando uma tabela
+```{bash, eval=FALSE}
+drop table1;
+```
+
+### Postgre a partir do R
+
+- Conectando ao Postgres
+```{r}
+conn <- DBI::dbConnect(RPostgres::Postgres(), 
+					   host = "localhost",
+					   user = Sys.getenv("DBUSER"),
+					   dbname = "teste01",
+					   password = Sys.getenv("DBPASSWORD"))
+
+conn
+```
+
+- Criando Banco de Dados através do R
+	- `dbExecute()`: executa algo e não retorna resultado
+```{r, eval=FALSE}
+DBI::dbExecute(conn, "CREATE DATABASE stf")
+```
+
+- `dbGetQuery()`: executa algo e retorna um resultado
+```{r, eval=FALSE}
+DBI::dbGetQuery(conn, "SELECT * FROM informacoes")
+```
+
+
+- Listar os DB existentes
+	- Lembrar: Mudar en_US.UTF-8 para pt_BR.UTF-8
+```{r}
+source("utils.R")
+
+pg_l(conn)
+```
+
+- Upando um Danco de Dados para o Postgres
+```{r, eval=FALSE}
+DBI::dbWriteTable(conn, "informacoes", informacoes)
+DBI::dbWriteTable(conn, "detalhes", detalhes)
+DBI::dbWriteTable(conn, "movimentacao", movimentacao)
+DBI::dbWriteTable(conn, "partes", partes)
+```
+
+- Listando as tabelas que estão no Postgres
+```{r}
+dbListTables(conn)
+```
+
+- Diagrama Postgres
+```{r, echo=FALSE, fig.align='left', fig.cap="Figura 1. Esquema básico do funcionamento de uma conexão Postgres."}
+knitr::include_graphics(here::here("data", "images", "postgres_diagram.png"))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -92,9 +92,9 @@ conn <- DBI::dbConnect(RPostgres::Postgres(),
 ```{r, eval=FALSE}
 conn <- DBI::dbConnect(RPostgres::Postgres(), 
 					   host = "localhost",
-					   user = "ricardo",
-					   dbname = "teste01",
-					   password = "123456")
+					   user = Sys.getenv("DBUSER"),
+					   dbname = "NOME_BD",
+					   password = Sys.getenv("DBPASSWORD"))
 conn
 ```
 
