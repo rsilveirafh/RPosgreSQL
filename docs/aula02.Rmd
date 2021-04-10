@@ -169,7 +169,7 @@ rtf
 ### 4) tidyverse
 
 - Carregando **tidyverse**
-```{r}
+```{r, message=FALSE}
 library(readxl)
 library(tidyverse)
 library(writexl)
