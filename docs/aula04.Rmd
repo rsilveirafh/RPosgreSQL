@@ -1,0 +1,443 @@
+---
+title: 'aula 04 :: PostgreSQL + R'
+author: "Ricardo Rodrigues da Silveira Filho"
+date: "17 abr 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+knitr::knit_hooks$set(wrapper = function(before, options) {
+	# the original chunk might be indented
+	if (is.null(indent <- options$indent)) indent <- ''
+	# hide the wrapper=TRUE option
+	opts <- gsub(', wrapper=TRUE', '', options$params.src)
+	if (before) {
+		# add the header
+		sprintf('\n\n%s````\n```{r,%s}\n````\n', indent, opts)
+	} else {
+		# add the footer
+		sprintf('\n\n%s````\n```\n````\n', indent)
+	}
+})
+```
+
+***
+### 0) Setup
+
+- Carregando os pacotes a serem utilizados na sessão
+```{r, message=FALSE}
+library(connections)
+library(DBI)
+library(RPostgres)
+library(tidyverse)
+```
+
+- Ps.: Optei por mostrar o *head* dos *chunks* quando a linguagem utilizada foi o *SQL*.
+
+***
+### 1) PostgreSQL
+
+- Informações necessárias para lidar com o postgreSQL:
+	- ip
+	- Porta (por default: 5432)
+	- dbname
+	- user
+	- pw
+	- driver
+	
+- Instruções básicas pgAdmin
+
+- Biblioteca `connections`
+	- Possibilidade de visualização "point-and-click" do *cluster* via `RStudio`
+```{r}
+conn <- connection_open(RPostgres::Postgres(), 
+						host = "localhost",
+						user = Sys.getenv("DBUSER"),
+						dbname = "teste01",
+						password = Sys.getenv("DBPASSWORD"))
+```
+
+- Possibilidade de criar um arquivo *.sql, para rodar via `RStudio`
+	- Ver `SQL Script` no menu `File` > `New File`
+
+```{sql, connection = conn, wrapper=TRUE}
+-- !preview conn=conn
+
+-- SELECT * from informacoes limit 10
+
+-- ou
+
+-- SELECT incidente, assunto1
+-- FROM informacoes
+
+-- ou
+
+SELECT incidente, informacoes.assunto1 assunto, detalhes.classe
+FROM informacoes
+INNER JOIN detalhes using (incidente)
+LIMIT 6
+
+```
+
+- Fazendo *queries* com o `dplyr`
+	- Exemplo 1
+	
+```{r}
+dplyr::tbl(conn, "informacoes") %>% 
+	select(incidente, assunto = assunto1) %>% 
+	collect() %>% 
+	head()
+```
+
+	- Exemplo 2
+```{r}
+selecionar <- function(conn = NULL, tbl, ...) {
+	dplyr::tbl(conn, tbl) %>% 
+		dplyr::select(...) %>% 
+		dplyr::collect()
+}
+
+selecionar(conn = conn, "detalhes", incidente, sigilo, meio) %>% 
+	head()
+```
+
+```{r}
+selecionar(conn = conn, "detalhes", 1, 2) %>% 
+	head()
+```
+
+- Fazendo *queries* com o `DBI`
+```{r}
+DBI::dbGetQuery(conn, "
+				select incidente, assunto1 as assunto
+			    from informacoes
+				limit 6")
+```
+
+- Linguagem SQL
+	- "" somente para objetos
+	- '' para identificadores
+		- ex.:
+```{sql, connection = conn, wrapper = TRUE}
+SELECT *
+FROM "detalhes"
+WHERE classe = 'AI'
+OR relator_atual = 'MINISTRO PRESIDENTE'
+LIMIT 6
+```
+		
+		- ou...
+```{r}
+DBI::dbGetQuery(conn, "
+				SELECT *
+				FROM detalhes
+				WHERE classe = 'AI'
+				OR relator_atual = 'MINISTRO PRESIDENTE'
+				LIMIT 6")
+```
+
+		- ou...
+```{r}
+dplyr::tbl(conn, "detalhes") %>% 
+	filter(classe == "AI" | relator_atual == "MINISTRO PRESIDENTE") %>% 
+	head()
+```
+
+- Demonstrar *query* realizada com o `dplyr`
+```{r}
+df <- dplyr::tbl(conn, "detalhes") %>% 
+	filter(classe == "AI" | relator_atual == "MINISTRO PRESIDENTE") %>% 
+	head()
+
+dplyr::show_query(df)
+```
+
+- Enviando um *query* para "pedir" o banco de dados posteriormente
+	- Útil para métodos de paginação (para `shiny`, por exemplo)
+```{r}
+df2 <- dbSendQuery(conn, "
+			SELECT *
+			FROM detalhes
+			WHERE classe = 'AI'
+			OR relator_atual = 'MINISTRO PRESIDENTE'
+			")
+
+# O argumento "n" limita o número de eventos a serem mostrados
+df2_fetch <- dbFetch(df2, n = 6)
+
+df2_fetch
+```
+
+### Criando tabelas a partir de outras
+
+- Tutorial:
+	<https://rpg.consudata.com.br/posts/2021-01-03-tidypg-cheatsheet-criando-tabelas-a-partir-de-outras-parte-1/>
+
+- Banco de dados a ser utilizado:
+```{r}
+df3 <- dplyr::tbl(conn, "detalhes") %>% 
+	filter(classe == "AI" | relator_atual == "MINISTRO PRESIDENTE")
+```
+
+
+- Utilizando `tidyverse`
+```{r}
+df3 %>% 
+	head(n = 2)
+```
+
+- Utilizando `DBI`
+```{r}
+DBI::dbGetQuery(conn, "
+				SELECT *
+				FROM detalhes
+				ORDER BY incidente
+				LIMIT 2
+				")
+```
+
+- Para garantir que uma tabela tenha "ordem"
+	- Criando uma variável de identificação (ID)
+```{r, eval=FALSE}
+dbExecute(conn, "
+		  ALTER TABLE detalhes ADD COLUMN detalhes_id SERIAL
+		  ")
+```
+
+```{r}
+dbGetQuery(conn, "
+		   SELECT *
+		   FROM detalhes
+		   ORDER BY detalhes_id
+		   LIMIT 2
+		   ")
+```
+
+- Filtrando observações
+```{r}
+dbGetQuery(conn, "
+		   SELECT *
+		   FROM detalhes
+		   WHERE relator_atual != 'MINISTRO PRESIDENTE'
+		   LIMIT 6")
+
+# Para "diferente", <> pode ser utilizado
+# Para comparação "==", usar somente "="
+```
+
+```{r}
+df3 %>% 
+	filter(relator_atual == "MINISTRO PRESIDENTE") %>% 
+	head()
+```
+
+- Adicionar uma tabela
+```{r, eval=FALSE}
+new_data <- dbFetch(df2, n = 20)
+
+dbWriteTable(conn, "nova_tabela", new_data)
+```
+
+	- ou...
+		- Unindo linhas (*bind_rows*)
+```{r}
+dbExecute(conn, "
+		  CREATE TABLE df AS
+		  (
+		  SELECT * FROM detalhes
+		  UNION
+		  SELECT * FROM nova_tabela
+		  )
+		  ")
+
+# UNION ALL: Mantém as duplicatas
+# UNION: Não adiciona duplicatas
+```
+
+	- Resultado `CREATE TABLE`:
+```{r, echo=FALSE}
+knitr::include_graphics(here::here("data", "images", "sql_create_column.png"))
+```
+
+
+- Apagando uma tabela
+```{r}
+dbExecute(conn, "DROP TABLE df")
+```
+
+	- Resultado `DROP TABLE`
+```{r, echo=FALSE}
+knitr::include_graphics(here::here("data", "images", "sql_drop_column.png"))
+```
+
+
+- Unindo `data.frames` horizontalmente
+```{r}
+data01 <- data.frame(a = 1:5,
+					 b = letters[1:5])
+
+data02 <- data.frame(c = c(6:10),
+					 d = letters[6:10])
+
+data0102 <- bind_cols(data01, data02)
+```
+
+- Com `DBI`
+```{r}
+dbWriteTable(conn, "data01", data01, append = TRUE)
+dbWriteTable(conn, "data02", data02, append = TRUE)
+```
+
+```{r, echo=FALSE}
+knitr:: include_graphics(here::here("data", "images", "sql_create_tables.png"))
+```
+
+- Unindo `data.frames` horizontalmente com `SQL`
+```{r, eval=FALSE}
+# Adicionar ID (SERIAL)
+dbExecute(conn, "ALTER TABLE data01 ADD COLUMN id_1 SERIAL")
+dbExecute(conn, "ALTER TABLE data02 ADD COLUMN id_2 SERIAL")
+
+dbExecute(conn, "
+		  CREATE TABLE data0102 as
+		  (SELECT * FROM data01, data02
+		  WHERE data01.id_1 = data02.id_2)
+		  ")
+
+```
+
+### Joins no R e no PostgreSQL ("Empilhamento")
+
+#### R
+
+- Tutorial:
+	- <https://rpg.consudata.com.br/posts/2021-01-03-joins-no-r-e-no-postgresql/> 
+	
+- Perguntas antes de fazer um `join`
+	1. Quero preservar todas as linhas das duas tabelas?
+	1. Quero preservar todas as linhas de apenas uma tabela?
+	1. Quero preservar todas as colunas de ambas tabelas?
+	1. Quero preservar *NA*s (no **R**) ou *NULL*s no **PostgreSQL**?
+	1. Quero juntar as tabelas com base na comparação de apenas um par de colunas, ou seja, coluna *a* da *tbl1* com coluna *b* da *tbl2*?
+	1. Se fizer conforme a pergunta 5, o que vai acontecer com colunas com o mesmo nome nas duas tabelas, mas que não pretendo comparar para efeitos de junção?
+	1. Quero valores das duas tabelas ou apenas de uma?
+
+- Criando `data.frames`
+```{r}
+set.seed(35)
+d01 <- tibble::tibble(a = sample(1:5, 5),
+					  b = sample(c(NA_real_, 6:9), 5),
+					  c = sample(c(NA_character_, sample(letters, 4)), 5))
+knitr::kable(d01)
+```
+
+```{r}
+set.seed(936)
+d02 <- tibble::tibble(a = sample(c(NA_real_, 2:7), 7),
+					  b = sample(c(NA_real_, 3:8), 7))
+knitr::kable(d02)
+```
+
+- Realizando um `inner_join`
+```{r}
+d03 <- inner_join(d01, d02, by = "a")
+
+knitr::kable(d03)
+```
+
+- "Coalescendo"
+```{r}
+d03 %>% 
+	mutate(b = coalesce(b.x, b.y),
+		   b.x = NULL,
+		   b.y = NULL)
+```
+
+- Realizar `inner_join` com mais de uma variável
+```{r}
+knitr::kable(inner_join(d01, d02, by = c("a", "b")))
+```
+
+- `left_join` e `right_join`
+	- `left_join` preserva todas as linhas do `data.frame` à esquerda
+	- `right_join` preserva todas as linhas do `data.frame` à direita
+
+```{r}
+knitr::kable(left_join(d01, d02, by = "a"))
+```
+
+```{r}
+knitr::kable(right_join(d01, d02, by = "a"))
+```
+
+- `full_join`
+	- Unir os dois `data.frames` por completo
+```{r}
+knitr::kable(full_join(d01, d02, by = "a"))
+```
+
+- `semi_join`
+	- Pega somente os valores que correspondem ao índice dado
+```{r}
+knitr::kable(semi_join(d01, d02, by = "a"))
+```
+
+- `anti_join`
+	- Operação inversa do `semi_join`
+```{r}
+knitr::kable(anti_join(d01, d02, by = "a"))
+```
+
+#### PostgreSQL
+
+- Adicionar dados no Postgre
+```{r, eval=FALSE}
+iwalk(list(d01 = d01, d02 = d02), ~ {
+	dbWriteTable(conn, .y, .x)
+})
+```
+
+- `INNER JOIN`
+	- Uma chave apenas
+```{sql, connection=conn}
+SELECT * FROM d01 INNER JOIN d02 USING (a)
+```
+
+	- Mais de uma chave
+```{sql, connection=conn}
+SELECT * FROM d01 INNER JOIN d02 USING (a, b)
+```
+
+- Exercícios PostgreSQL
+	- <https://pgexercises.com/>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
